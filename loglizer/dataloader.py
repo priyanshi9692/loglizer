@@ -162,12 +162,50 @@ def slice_hdfs(x, y, window_size):
 
 
 
-def load_BGL(log_file, label_file=None, window='sliding', time_interval=60, stepping_size=60, 
+def load_BGL(log_file, label_file=None, window='sliding', time_interval=2, stepping_size=2, 
              train_ratio=0.8):
-    """  TODO
-
     """
+    Load the BGL dataset from a CSV file and preprocess the data.
 
+    Args:
+    -----------
+    log_file : str
+    label_file : str, optional
+    window : str
+    time_interval : int (in hours)
+    stepping_size : int (in hours)
+    train_ratio : float (Default is 0.8)
+
+    Returns:
+    --------
+    tuple
+        A tuple containing training and testing data.
+
+        - (event_count_matrix_train, labels_train): Training data including the event count matrix and labels.
+        - (event_count_matrix_test, labels_test): Testing data including the event count matrix and labels.
+    """
+    print("======Input data summary=======")
+    if log_file.endswith('.csv'):
+        assert window == 'sliding', "Only window=sliding is supported for BGL dataset."
+        print("Loading", log_file)
+        structured_log = pd.read_csv(log_file, engine='c', na_filter=False, memory_map=True)
+        #Converting EventId as a categorical column
+        structured_log['EventId'] = pd.factorize(structured_log['EventId'])[0]
+        # Preprocess the data and get event count matrix and labels
+        event_count_matrix_train, labels_train = bgl_preprocess_data({
+                'save_path': './',  # Path to save sliding windows if needed
+                'window_size': time_interval,  # Window size in hours
+                'step_size': stepping_size  # Stepping size for sliding windows in hours
+            }, structured_log[['Label', 'Timestamp']].values, structured_log[['EventId']].values)
+
+        train_size = int(train_ratio * event_count_matrix_train.shape[0])
+        event_count_matrix_test = event_count_matrix_train[train_size:]
+        labels_test = labels_train[train_size:]
+        event_count_matrix_train = event_count_matrix_train[:train_size]
+        labels_train = labels_train[:train_size]
+
+        return (event_count_matrix_train, labels_train), (event_count_matrix_test, labels_test)
+        
 
 def bgl_preprocess_data(para, raw_data, event_mapping_data):
     """ split logs into sliding windows, built an event count matrix and get the corresponding label
