@@ -162,7 +162,7 @@ def slice_hdfs(x, y, window_size):
 
 
 
-def load_BGL(log_file, label_file=None, window='sliding', time_interval=2, stepping_size=2, 
+def load_BGL(log_file, label_file=None, window='sliding', time_interval=60, stepping_size=60, 
              train_ratio=0.8):
     """
     Load the BGL dataset from a CSV file and preprocess the data.
